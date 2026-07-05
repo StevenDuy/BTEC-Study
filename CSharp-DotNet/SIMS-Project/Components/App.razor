@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="SIMS.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        // 1. Hàm tải file (QUAN TRỌNG: Sửa lỗi downloadFileFromStream is undefined)
+        window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+            const arrayBuffer = await contentStreamReference.arrayBuffer();
+            const blob = new Blob([arrayBuffer]);
+            const url = URL.createObjectURL(blob);
+            const anchorElement = document.createElement('a');
+            anchorElement.href = url;
+            anchorElement.download = fileName ?? '';
+            anchorElement.click();
+            anchorElement.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        // 2. Hàm khởi tạo Select2 chung (cho Dropdown Môn học, Giảng viên...)
+        window.initSelect2 = (elementId) => {
+            var $element = $('#' + elementId);
+            if ($element.length === 0) return;
+
+            // Hủy instance cũ nếu có để tránh lỗi
+            if ($element.hasClass('select2-hidden-accessible')) {
+                $element.select2('destroy');
+            }
+
+            $element.select2({
+                width: '100%',
+                placeholder: "Select an option",
+                allowClear: true
+            });
+
+            // Báo cho Blazor biết khi giá trị thay đổi
+            $element.on('change', function () {
+                var event = new Event('change');
+                document.getElementById(elementId).dispatchEvent(event);
+            });
+        };
+
+        // 3. Các hàm Select2 đặc biệt cho Sinh viên (Giữ nguyên logic gốc của bạn)
+        window.initStudentSelect2 = function() {
+            var element = $('#studentIds');
+            if (element.length === 0) return false;
+
+            if (element.hasClass('select2-hidden-accessible')) {
+                element.select2('destroy');
+            }
+
+            element.select2({
+                ajax: {
+                    url: '/api/students/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term || '',
+                            page: params.page || 1
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function(item) {
+                                return {
+                                    id: item.id,
+                                    text: item.name + ' (' + item.studentId + ') - ' + item.email
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                placeholder: 'Search students...',
+                minimumInputLength: 0,
+                width: '100%'
+            });
+            return true;
+        };
+
+        window.clearStudentSelect2 = function() {
+            var element = $('#studentIds');
+            if (element.length > 0) {
+                element.val(null).trigger('change');
+            }
+        };
+
+        window.getSelectedStudents = function() {
+            var val = $('#studentIds').val();
+            return val ? (Array.isArray(val) ? val : [val]) : [];
+        };
+    </script>
+
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

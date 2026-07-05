@@ -1,0 +1,159 @@
+﻿@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using SIMS.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserStore<ApplicationUser> UserStore
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Register</PageTitle>
+<link rel="stylesheet" href="app.css" />
+
+<div class="app-container animate-fade-in" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="card-modern hover-lift" style="width: 100%; max-width: 500px; padding: 2.5rem;">
+
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.75rem; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h2 style="font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Create Account</h2>
+            <p style="color: var(--text-muted);">Join SIMS to manage your academic journey</p>
+        </div>
+
+        <StatusMessage Message="@Message" />
+
+        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="validation-message" role="alert" style="margin-bottom: 1rem;" />
+
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <div style="position: relative;">
+                        <InputText @bind-Value="Input.Email" class="form-control" placeholder="name@example.com" style="padding-left: 2.5rem;" />
+                        <i class="fa-solid fa-envelope" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    </div>
+                    <ValidationMessage For="() => Input.Email" class="validation-message" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div style="position: relative;">
+                        <InputText type="password" @bind-Value="Input.Password" class="form-control" placeholder="••••••••" style="padding-left: 2.5rem;" />
+                        <i class="fa-solid fa-lock" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    </div>
+                    <ValidationMessage For="() => Input.Password" class="validation-message" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <div style="position: relative;">
+                        <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" placeholder="••••••••" style="padding-left: 2.5rem;" />
+                        <i class="fa-solid fa-check-double" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    </div>
+                    <ValidationMessage For="() => Input.ConfirmPassword" class="validation-message" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary hover-lift" style="width: 100%; padding: 0.8rem; font-size: 1rem; justify-content: center; margin-top: 1.5rem;">
+                Register Account
+            </button>
+
+            <div style="text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--text-muted);">
+                Already have an account?
+                <a href="Account/Login" style="color: var(--primary); font-weight: 600; text-decoration: none;">Log in</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    public async Task RegisterUser()
+    {
+        var user = CreateUser();
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        var emailStore = GetEmailStore();
+        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User created a new account with password.");
+
+            var userId = await UserManager.GetUserIdAsync(user);
+            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+                NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+                new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+            await SignInManager.SignInAsync(user, isPersistent: false);
+            RedirectManager.RedirectTo("/"); // Chuyển về trang chủ thay vì ReturnUrl
+        }
+        else
+        {
+            identityErrors = result.Errors;
+        }
+    }
+
+    private ApplicationUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<ApplicationUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
+                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<ApplicationUser> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+        return (IUserEmailStore<ApplicationUser>)UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

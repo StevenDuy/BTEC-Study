@@ -1,0 +1,56 @@
+# =========================
+# 1. C# / .NET (SIMS, APDP)
+# =========================
+[Bb]in/
+[Oo]bj/
+[Tt]est[Rr]esults/
+.vs/
+*.user
+*.suo
+*.dbmdl
+*.jfm
+
+# =========================
+# 2. PHP / Laravel / Web (Ecommerce, Test-Laravel)
+# =========================
+/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.phpunit.result.cache
+public/storage
+public/hot
+
+# =========================
+# 3. Java / NetBeans (ManagementStudent)
+# =========================
+build/
+dist/
+nbproject/private/
+*.class
+*.jar
+*.war
+
+# =========================
+# 4. Arduino / C++ (HomeAutomation)
+# =========================
+.build/
+build/
+*.elf
+*.hex
+*.bin
+*.eep
+*.o
+*.a
+
+# =========================
+# 5. Hệ điều hành & Công cụ (Chung)
+# =========================
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*.log
+*.rar
+*.zip

@@ -1,0 +1,94 @@
+﻿@page "/Account/Manage/TwoFactorAuthentication"
+
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Identity
+@using SIMS.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Two-factor authentication</PageTitle>
+
+<StatusMessage />
+
+<div class="compact-grid-wrapper">
+    <div class="compact-left-col">
+        <div class="compact-icon-box" style="background: @(is2faEnabled ? "#ecfdf5" : "#f1f5f9"); color: @(is2faEnabled ? "#059669" : "#64748b");">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h4 class="compact-title">2FA Status</h4>
+        <div style="font-weight: 600; color: @(is2faEnabled ? "#059669" : "#64748b");">
+            @(is2faEnabled ? "ENABLED" : "DISABLED")
+        </div>
+    </div>
+
+    <div class="compact-right-col" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+        @if (canTrack)
+        {
+            if (is2faEnabled)
+            {
+                if (recoveryCodesLeft == 0)
+                {
+                    <div class="alert alert-danger p-2 mb-0" style="font-size:0.85rem;">No recovery codes left.</div>
+                }
+                else if (recoveryCodesLeft <= 3)
+                {
+
+                    <div class="alert alert-warning p-2 mb-0" style="font-size:0.85rem;">@recoveryCodesLeft codes left.</div>
+                }
+
+                if (isMachineRemembered)
+                {
+                    <form @onsubmit="OnSubmitForgetBrowserAsync">
+                        <button type="submit" class="btn btn-secondary hover-lift btn-sm-custom w-100">Forget this browser</button>
+                    </form>
+                }
+
+                <a href="Account/Manage/Disable2fa" class="btn btn-danger hover-lift btn-sm-custom w-100">Disable 2FA</a>
+                <a href="Account/Manage/GenerateRecoveryCodes" class="btn btn-secondary hover-lift btn-sm-custom w-100">Reset Recovery Codes</a>
+            }
+
+            <h5 style="margin: 0.5rem 0 0.2rem 0; font-size: 0.9rem; color: var(--text-muted);">Authenticator App</h5>
+            <a href="Account/Manage/EnableAuthenticator" class="btn btn-primary hover-lift btn-sm-custom w-100">
+                @(is2faEnabled ? "Setup / Change App" : "Setup Authenticator")
+            </a>
+            <a href="Account/Manage/ResetAuthenticator" class="btn btn-secondary hover-lift btn-sm-custom w-100">Reset App</a>
+        }
+        else
+        {
+            <div class="alert alert-danger">Privacy policy not accepted.</div>
+        }
+    </div>
+</div>
+
+<style>
+    /* Paste lại CSS .compact-grid-wrapper... */
+</style>
+
+@code {
+    private bool canTrack;
+    private bool hasAuthenticator;
+    private int recoveryCodesLeft;
+    private bool is2faEnabled;
+    private bool isMachineRemembered;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        canTrack = HttpContext.Features.Get<ITrackingConsentFeature>()?.CanTrack ?? true;
+        hasAuthenticator = await UserManager.GetAuthenticatorKeyAsync(user) is not null;
+        is2faEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        isMachineRemembered = await SignInManager.IsTwoFactorClientRememberedAsync(user);
+        recoveryCodesLeft = await UserManager.CountRecoveryCodesAsync(user);
+    }
+
+    private async Task OnSubmitForgetBrowserAsync()
+    {
+        await SignInManager.ForgetTwoFactorClientAsync();
+        RedirectManager.RedirectToCurrentPageWithStatus("Browser forgotten.", HttpContext);
+    }
+}

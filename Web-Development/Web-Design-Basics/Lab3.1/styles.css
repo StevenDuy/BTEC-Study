@@ -1,0 +1,122 @@
+:root {
+  --primary-color: #ff9800;
+  --secondary-color: #e65100;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+header {
+  background-color: var(--primary-color);
+  text-transform: uppercase;
+  text-align: center;
+  padding: 40px;
+  font-weight: bold;
+  color: var(--secondary-color);
+  position: relative;
+  left: 0;
+  top: 0;
+  width: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #ffffff;
+  color: #e65100;
+  margin: auto;
+  line-height: 1.6;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 120px;
+}
+
+#about {
+  padding: 40px;
+  color: var(--primary-color);
+  border-left: 5px var(--primary-color) solid;
+  border-radius: 15px;
+  margin-left: 50px;
+}
+
+#about h3 {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+#about .fa-star {
+  color: var(--primary-color) !important;
+}
+
+#about p ::first-letter {
+  color: var(--secondary-color);
+  font-size: 2em;
+  font-weight: bold;
+}
+
+#projects {
+  padding: 40px;
+  color: var(--primary-color);
+  border-left: 5px var(--primary-color) solid;
+  border-radius: 15px;
+  margin-left: 50px;
+}
+
+#projects h3 {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+#projects .fa-star {
+  color: var(--primary-color) !important;
+}
+
+#projects ul {
+  line-height: 25px;
+  padding-left: 15px;
+}
+
+#projects ul li:nth-child(odd) {
+  color: var(--secondary-color);
+}
+
+#contact {
+  padding: 40px;
+  color: var(--secondary-color);
+  border-left: 5px var(--primary-color) solid;
+  border-radius: 15px;
+  margin-left: 50px;
+  border-top: 2px solid aqua;
+}
+
+#contact a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+#contact a:hover {
+  text-decoration: underline;
+}
+
+#contact .fa-star {
+  color: var(--primary-color) !important;
+}
+
+#contact .fa-phone {
+  color: blue;
+}
+
+footer {
+  background-color: var(--secondary-color);
+  text-transform: uppercase;
+  text-align: center;
+  padding: 40px;
+  font-weight: bold;
+  color: white;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}

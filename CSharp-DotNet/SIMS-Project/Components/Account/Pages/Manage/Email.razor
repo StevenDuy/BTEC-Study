@@ -1,0 +1,205 @@
+﻿@page "/Account/Manage/Email"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using SIMS.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Manage Email</PageTitle>
+
+<StatusMessage Message="@message" />
+
+<div class="compact-grid-wrapper">
+    <div class="compact-left-col">
+        <div class="compact-icon-box">
+            <i class="fa-solid fa-envelope-open-text"></i>
+        </div>
+        <h4 class="compact-title">Current Email</h4>
+        <div class="current-email-badge">
+            @email
+            @if (isEmailConfirmed)
+            {
+                <span class="text-success ms-2"><i class="fa-solid fa-circle-check"></i></span>
+            }
+            else
+            {
+                <span class="text-warning ms-2"><i class="fa-solid fa-circle-exclamation"></i></span>
+            }
+        </div>
+        @if (!isEmailConfirmed)
+        {
+            <button class="btn btn-link btn-sm" @onclick="OnSendEmailVerificationAsync">Resend Verification</button>
+        }
+    </div>
+
+    <div class="compact-right-col">
+        <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="validation-message" role="alert" style="margin-bottom: 1rem;" />
+
+            <div class="form-group mb-3">
+                <label class="form-label-sm">New Email Address</label>
+                <div style="position: relative;">
+                    <InputText @bind-Value="Input.NewEmail" class="form-control form-control-sm" placeholder="Enter new email" style="padding-left: 2rem;" />
+                    <i class="fa-solid fa-pen icon-sm" style="position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                </div>
+                <ValidationMessage For="() => Input.NewEmail" class="validation-message" />
+            </div>
+
+            <button type="submit" class="btn btn-primary hover-lift btn-sm-custom" style="width: 100%;">
+                Update Email
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+<style>
+    .compact-grid-wrapper {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 2rem;
+        align-items: center;
+        height: 100%;
+        padding-top: 1rem;
+    }
+
+    .compact-left-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        border-right: 1px solid #f1f5f9;
+        padding-right: 2rem;
+        height: 100%;
+        justify-content: center;
+    }
+
+    .compact-right-col {
+        max-width: 400px;
+    }
+
+    .compact-icon-box {
+        width: 80px;
+        height: 80px;
+        background: #f1f5f9;
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .compact-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-main);
+    }
+
+    .current-email-badge {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        background: #f8fafc;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        word-break: break-all;
+    }
+
+    .form-label-sm {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        display: block;
+        color: var(--text-main);
+    }
+
+    .form-control-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        height: 40px;
+        border-radius: 8px;
+    }
+
+    .icon-sm {
+        font-size: 0.8rem;
+    }
+
+    .btn-sm-custom {
+        padding: 0.6rem;
+        font-size: 0.95rem;
+    }
+
+    @@media (max-width: 768px) {
+        .compact-grid-wrapper {
+            grid-template-columns: 1fr;
+            padding-top: 0;
+        }
+
+        .compact-left-col {
+            border-right: none;
+            border-bottom: 1px solid #f1f5f9;
+            padding-right: 0;
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            height: auto;
+        }
+    }
+</style>
+
+@code {
+    private string? message;
+    private ApplicationUser user = default!;
+    private string? email;
+    private bool isEmailConfirmed;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "change-email")]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        email = await UserManager.GetEmailAsync(user);
+        isEmailConfirmed = await UserManager.IsEmailConfirmedAsync(user);
+        Input.NewEmail ??= email;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.NewEmail is null || Input.NewEmail == email)
+        {
+            message = "Your email is unchanged.";
+            return;
+        }
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateChangeEmailTokenAsync(user, Input.NewEmail);
+        // Code gửi email verify...
+        message = "Confirmation link sent. Please check your email.";
+    }
+
+    private async Task OnSendEmailVerificationAsync()
+    {
+        if (email is null) return;
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        // Code gửi email verify...
+        message = "Verification email sent. Please check your email.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "New email")]
+        public string? NewEmail { get; set; }
+    }
+}
